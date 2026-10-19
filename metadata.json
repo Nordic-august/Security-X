@@ -1,0 +1,6 @@
+{
+  "name": "Security X - Glossário de Fragilidades",
+  "description": "Glossário interativo de fragilidades em sistemas da informação com catálogo no estilo streaming, exemplos práticos, central de sugestões e painel administrativo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
