@@ -1,6 +1,6 @@
-# Security X — Plataforma e Glossário de Vulnerabilidades em Sistemas de Informação
+# Security X — Expansão com Vulnerabilidades Digitais (Artigo UFPR) e Portal Administrativo Restrito
 
-Plataforma educacional full-stack interativa projetada para estudantes de segurança da informação e computação, combinando uma experiência de catálogo no estilo streaming, busca instantânea de vulnerabilidades, envio comunitário de sugestões e painel administrativo completo com persistência compatível com PostgreSQL.
+Plano de evolução da plataforma Security X para integrar as vulnerabilidades contemporâneas derivadas do artigo científico *"Transformação, plataformas e vulnerabilidades digitais: proposição de uma abordagem para estudos de tecnologia"* (Botelho-Francisco, UFPR, 2025), acompanhado da segregação arquitetural do Painel Administrativo com autenticação restrita via login e senha exclusivos.
 
 ---
 
@@ -8,190 +8,164 @@ Plataforma educacional full-stack interativa projetada para estudantes de segura
 
 > [!IMPORTANT]
 > **Decisões Alinhadas nas Perguntas de Clarificação (Fase 1):**
-> - **Identidade Visual**: *Cyber Dark Moderno* com superfícies escuras refinadas (slate profundo), acentos luminosos ciano/esmeralda/âmbar para severidade e tipografia de alto contraste sem poluição visual.
-> - **Mostruário Estilo Streaming**: Fileiras temáticas em carrossel horizontal navegável (estilo Netflix) categorizadas por domínio de ameaça (ex.: OWASP Top 10, Segurança de Redes, Falhas de Autenticação, Criptografia, Engenharia Social) com cartões expansíveis e modal detalhado.
-> - **Estratégia de Banco de Dados**: Backend Node.js/Express com persistência transacional local estruturada com schema relacional formal, gerador e exportador DDL para PostgreSQL (`schema.sql`), permitindo execução imediata no applet com migração direta para Cloud SQL / PostgreSQL.
-
-- **Fluxo das 4 Abas Solicitadas**:
-  - **Aba 1 (Scroll 1 - Hero & Busca)**: Título oficial *"Security X"*, descrição institucional para estudantes, barra de busca em tempo real com filtros rápidos e botão flutuante no canto inferior direito que encaminha diretamente para a Aba 3.
-  - **Aba 2 (Scroll 2 - Catálogo de Streaming)**: Vitrine visual em carrosséis temáticos e grade fluida com termos técnicos, gravidade (Baixa, Média, Alta, Crítica), resumo prático, CVE/CWE associados e clique para inspeção profunda.
-  - **Aba 3 (Página Separada - Central de Sugestões)**: Formulário para estudantes sugerirem novas fragilidades, exemplos práticos ou melhorias em termos existentes, com validação de campos e histórico de envios.
-  - **Aba 4 (Página Separada - Painel Administrativo)**: Gestão completa (CRUD) de vulnerabilidades (adicionar novos termos, editar, definir categoria e gravidade, excluir) e moderação de sugestões enviadas por estudantes.
+> - **Distribuição dos Novos Termos**: As novas fragilidades e conceitos fundamentados no artigo científico da UFPR serão distribuídos dentro das 5 categorias temáticas existentes do catálogo streaming (OWASP Web, Redes & Infraestrutura, Autenticação & Acesso, Criptografia & Dados, APIs & Microsserviços/IA), enriquecendo o repertório técnico e epistemológico sem romper o formato visual familiar.
+> - **Acesso Restrito ao Painel Administrativo**: Criação de uma tela de login dedicada (`/admin/login` ou rota visual isolada), exigindo autenticação obrigatória com as credenciais especificadas pelo usuário:
+>   - **Login**: `Secutiry159`
+>   - **Senha**: `159_753.`
+> - **Proteção do Painel**: O painel administrativo deixará de ser uma aba pública comum na barra de navegação; o menu principal terá apenas o link discreto "Acesso Restrito", e todas as rotas administrativas e ações de mutação na API exigirão validação de credencial/token de sessão.
 
 ---
 
-### 1. Overview & Core Concept
+### 1. Prévia do Site com as Novas Informações (Artigo UFPR)
 
-- **O que a aplicação faz**: Apresenta de forma acessível e visualmente envolvente um glossário vivo de fragilidades em sistemas de informação. Estudantes podem buscar termos por nome, CVE, protocolo ou categoria, explorar fileiras temáticas interativas como em catálogos de streaming de vídeo, abrir fichas detalhadas com cenários reais de ataque e medidas de mitigação, enviar sugestões e gerenciar termos via painel administrativo.
-- **Público-Alvo**: Estudantes de Engenharia de Software, Ciência da Computação, Segurança da Informação, redes e desenvolvedores em início de carreira buscando entender vulnerabilidades sem o peso de relatórios excessivamente herméticos.
-- **Valor Principal**: Didática clara com exemplos práticos do mundo real, analogias compreensíveis, categorização visual imediata por risco e autonomia para a comunidade sugerir novos conceitos.
+O artigo científico examina como a transformação digital e a plataformização criam vulnerabilidades multidimensionais (técnico-científicas, materiais, geopolíticas, socioculturais e socioeconômicas). Com base nisso, o catálogo será expandido com **7 novas fragilidades fundamentais**:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────┐
+│              PRÉVIA DAS NOVAS VULNERABILIDADES NO CATÁLOGO STREAMING             │
+├─────────────────────────────────────────────────┬────────────────┬───────────────┤
+│ Termo / Vulnerabilidade                         │ Categoria      │ Severidade    │
+├─────────────────────────────────────────────────┼────────────────┼───────────────┤
+│ 1. Racismo Algorítmico & Vieses em Machine      │ APIs & Cloud   │ Crítica       │
+│    Learning (IA)                                │                │               │
+│ 2. Envenenamento de Dados em IA (Data Poisoning │ APIs & Cloud   │ Alta          │
+│    & Adversarial Machine Learning)              │                │               │
+│ 3. Dataficação Abusiva & Capitalismo de         │ Criptografia & │ Alta          │
+│    Vigilância (Zuboff / Couldry)                │ Dados          │               │
+│ 4. Plataformização Monopolista & Lock-in de     │ Redes &        │ Média         │
+│    Infraestrutura (Dependência Big Techs)       │ Infraestrutura │               │
+│ 5. Vulnerabilidades em IoT & Indústria 4.0      │ Redes &        │ Alta          │
+│    (Hiperconexão e Sensores Desprotegidos)      │ Infraestrutura │               │
+│ 6. Obsolescência e Insegurança em               │ Redes &        │ Média         │
+│    Materialidades Digitais (Hardware/Datacenters│ Infraestrutura │               │
+│ 7. Manipulação Algorítmica e Dark Patterns      │ OWASP Top 10   │ Alta          │
+│    (Engenharia Social Automatizada)             │                │               │
+└─────────────────────────────────────────────────┴────────────────┴───────────────┘
+```
+
+#### Fichas Detalhadas das Novas Vulnerabilidades (Prévia de Conteúdo):
+
+1. **Racismo Algorítmico & Vieses em Sistemas de IA (Machine Learning)**
+   - *Categoria*: Segurança de APIs & Microsserviços / Inteligência Artificial
+   - *Severidade*: Crítica | *CWE*: CWE-1039 / Algorithmic Bias
+   - *Resumo Didático*: Falha sistêmica onde algoritmos treinados com bases desbalanceadas perpetuam e amplificam discriminações raciais, de gênero ou socioeconômicas em triagens automáticas, reconhecimento facial e concessão de serviços.
+   - *Exemplo*: Algoritmo de reconhecimento facial em portais universitários com taxa de erro 34% maior em estudantes de pele escura, bloqueando acesso legítimo a exames e salas.
+   - *Mitigação*: Auditorias algorítmicas de paridade, curadoria ética de datasets de treino e testes cegos de explicabilidade (XAI).
+
+2. **Envenenamento de Dados em IA (Data Poisoning & Adversarial ML)**
+   - *Categoria*: Segurança de APIs & Microsserviços
+   - *Severidade*: Alta | *CWE*: CWE-1039
+   - *Resumo Didático*: Inserção deliberada de dados maliciosos durante o treinamento ou fine-tuning de um modelo preditivo para criar backdoors ou induzir decisões errôneas específicas.
+   - *Exemplo*: Invasor introduz amostras de spam rotuladas falsamente como e-mails legítimos no repositório de treinamento de um filtro corporativo, permitindo phishing direcionado sem detecção.
+   - *Mitigação*: Validação criptográfica da proveniência dos datasets, filtragem estatística de anomalias no pipeline de ingestão e treinamento adversário.
+
+3. **Dataficação Abusiva & Capitalismo de Vigilância**
+   - *Categoria*: Criptografia & Vazamento de Dados
+   - *Severidade*: Alta | *CWE*: CWE-359 (Exposição de Dados Privados)
+   - *Resumo Didático*: Coleta desproporcional e opaca de rastros digitais (metadados, localização, biometria comportamental) para traçar perfis psicológicos e monetizar a atenção sem consentimento autêntico.
+   - *Exemplo*: Aplicativo acadêmico que, além de notas, coleta silenciosamente geolocalização em segundo plano, identificadores de Wi-Fi e histórico de navegação, vendendo os dados para corretores de publicidade.
+   - *Mitigação*: Princípio do *Privacy by Design*, minimização estrita de dados (LGPD/GDPR) e criptografia ponta a ponta com consentimento granular.
+
+4. **Plataformização Monopolista & Lock-in de Infraestrutura**
+   - *Categoria*: Redes & Infraestrutura
+   - *Severidade*: Média | *CWE*: CWE-1188 (Insecure Default Infrastructure Dependency)
+   - *Resumo Didático*: Concentração das tecnologias essenciais em ecossistemas fechados de Big Techs do Norte Global, reduzindo a soberania tecnológica de instituições e gerando pontos únicos de falha global.
+   - *Exemplo*: Queda ou alteração unilateral de termos de serviço de um único provedor de nuvem que desativa simultaneamente hospitais, faculdades e sistemas governamentais dependentes de suas APIs proprietárias.
+   - *Mitigação*: Adoção de arquiteturas multi-cloud, padrões abertos interoperáveis e fortalecimento de infraestruturas locais autônomas.
+
+5. **Vulnerabilidades em IoT & Indústria 4.0 (Sensores e Dispositivos Hiperconectados)**
+   - *Categoria*: Redes & Infraestrutura
+   - *Severidade*: Alta | *CWE*: CWE-1274 (Insecure IoT Device Architecture)
+   - *Resumo Didático*: Fragilidade em dispositivos inteligentes (câmeras, sensores industriais, atuadores e eletrodomésticos) com firmware desatualizado, credenciais de fábrica estáticas e falta de suporte a patches.
+   - *Exemplo*: Câmeras IP de laboratórios universitários infectadas por botnets Mirai através da porta Telnet com senha padrão `admin:123456`, usadas em ataques DDoS globais.
+   - *Mitigação*: Segmentação de rede em VLANs isoladas para dispositivos IoT, desativação de portas inseguras (Telnet/UPnP) e obrigatoriedade de troca de senhas no primeiro boot.
+
+6. **Obsolescência e Insegurança em Materialidades Digitais (Hardware & Datacenters)**
+   - *Categoria*: Redes & Infraestrutura
+   - *Severidade*: Média | *CWE*: CWE-1189
+   - *Resumo Didático*: Riscos decorrentes da camada física dos sistemas computacionais — desde vazamentos por canais laterais (Spectre/Meltdown no processador) até descarte físico incorreto de discos e dependência de cabos submarinos.
+   - *Exemplo*: Servidores antigos mantidos em produção com vulnerabilidades conhecidas no firmware IPMI/BMC, permitindo controle remoto da placa-mãe mesmo com o sistema operacional desligado.
+   - *Mitigação*: Sanitização e destruição criptográfica de mídias descontinuadas, monitoramento de canais laterais de CPU e planos de redundância física.
+
+7. **Manipulação Algorítmica e Dark Patterns (Engenharia Social Automatizada)**
+   - *Categoria*: OWASP Top 10 Web / Engenharia Social
+   - *Severidade*: Alta | *CWE*: CWE-1021
+   - *Resumo Didático*: Desenho intencional de fluxos de interface que induzem o usuário a conceder permissões excessivas, realizar compras indesejadas ou expor credenciais mediante estímulos cognitivos enganosos.
+   - *Exemplo*: Pop-up com botão falso de "Fechar" que, ao ser clicado, na verdade aceita instalação de extensão maliciosa no navegador ou desativa autenticação de dois fatores.
+   - *Mitigação*: Padrões de design ético, auditorias de UX voltadas à segurança e aplicação de regras regulatórias contra interfaces coercitivas.
 
 ---
 
-### 2. User Experience & Visual Design
+### 2. Arquitetura do Portal Administrativo Restrito (Login & Senha)
 
-#### A. Fluxos do Usuário
+#### A. Fluxo de Autenticação Segura
 
-1. **Exploração da Página Inicial (Abas 1 e 2 em Scroll Contínuo)**:
-   - O estudante acessa a página e visualiza a seção de topo com a identidade *Security X* e o texto oficial de apresentação:
-     *"Esse site tem como objetivo apresentar um glossário de fragilidades em sistemas da informação, além de mostrar exemplos e dar explicações acerca dessas mesmas vulnerabilidades de forma acessível e facilitada. Tendo como público alvo os estudantes da área"*
-   - Digita na barra de pesquisa (ex.: "SQL", "Phishing", "Buffer", "CWE-79") e vê filtragem reativa instantânea.
-   - Ao rolar para a Seção 2, descobre o mostruário de streaming: carrosséis deslizáveis (OWASP Web, Ameaças de Rede, Falhas de Autenticação, Ataques a APIs, etc.).
-   - Ao clicar em um card, um modal de alta densidade exibe:
-     - Nome técnico e sinônimos populares
-     - Nível de severidade (Informativo, Baixo, Médio, Alto, Crítico)
-     - Explicação didática descomplicada
-     - Exemplo prático de código ou cenário real de invasão
-     - Estratégias recomendadas de mitigação e prevenção
-     - Identificadores de referência (CWE, OWASP Top 10)
-   - Em qualquer ponto da página inicial, o botão flutuante no canto inferior direito permite ir com um clique para a **Central de Sugestões** (Aba 3).
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        ACESSO PÚBLICO (Estudantes)                     │
+│  - Aba 1: Hero & Busca                                                 │
+│  - Aba 2: Catálogo Streaming (Fileiras Temáticas)                      │
+│  - Aba 3: Central de Sugestões                                         │
+│  - Topbar Link: "Acesso Restrito" (abre o Portal de Login)             │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Clique em "Acesso Restrito"
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     PORTAL DE LOGIN ADMINISTRATIVO                     │
+│                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  Formulário Seguro de Autenticação:                             │  │
+│  │  - Usuário: Secutiry159                                          │  │
+│  │  - Senha:   159_753.                                             │  │
+│  │  [ Botão: Autenticar Acesso Administrativo ]                     │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ POST /api/admin/login
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│               SESSÃO ADMINISTRATIVA AUTENTICADA (Aba 4)                │
+│  - Gerenciamento Total de Vulnerabilidades (Criar, Editar, Excluir)    │
+│  - Moderação de Sugestões de Estudantes (Aprovar / Rejeitar)           │
+│  - Exportação e Manutenção do Banco PostgreSQL                         │
+│  - Botão visível de "Encerrar Sessão / Logout"                         │
+└────────────────────────────────────────────────────────────────────────┘
+```
 
-2. **Envio de Sugestões (Aba 3 - Tela Dedicada)**:
-   - Formulário com campos estruturados: Nome do Termo/Fragilidade, Categoria, Gravidade estimada, Descrição explicativa, Exemplo do mundo real e Nome/E-mail do estudante (opcional).
-   - Validação imediata de preenchimento e feedback visual com confirmação de envio.
+#### B. Componentes Técnicos do Login
 
-3. **Painel do Administrador (Aba 4 - Tela Dedicada)**:
-   - Visão geral com métricas reais (total de vulnerabilidades, sugestões pendentes, categorias ativas).
-   - Tabela de gerenciamento com ações de Adicionar Nova Fragilidade, Editar existente e Excluir.
-   - Aba interna para revisar as sugestões enviadas pelos estudantes, com opção de aprovar (transformando a sugestão diretamente em um novo termo publicado no catálogo) ou descartar.
-   - Botão para exportar o script SQL (`schema.sql` e `seeds.sql`) pronto para importação no PostgreSQL.
-
-#### B. Identidade Visual & Tema
-
-- **Diretriz Estética**: *Cyber Dark* moderno e refinado. Fundo escuro profundo inspirado em consoles e interfaces de segurança modernas (Tailwind `#090D16` e `#0F172A`), com superfícies de cards em `#131C31` e bordas ultrafinas (`border-slate-800`).
-- **Paleta de Cores (60-30-10)**:
-  - *60% Tela Neutra*: Slate escuro profundo (`#090D16` / `bg-slate-950`).
-  - *30% Superfícies Estruturais*: Superfícies de cards (`#0F172A`), divisores finos (`#1E293B`) e texto de corpo claro e legível (`#E2E8F0` / `#94A3B8`).
-  - *10% Acentos Semânticos*:
-    - Crítica: Coral Vermelho (`#EF4444`) com indicador de alto risco.
-    - Alta: Âmbar Intenso (`#F59E0B`).
-    - Média: Ciano Cibernético (`#06B6D4`).
-    - Baixa / Informativa: Esmeralda Suave (`#10B981`).
-    - Primária / Ação: Violeta Elétrico / Índigo (`#6366F1`).
-- **Tipografia**:
-  - *Títulos e Display*: `Outfit` / `Plus Jakarta Sans` com pesos 600 e 700 para impacto moderno e legibilidade.
-  - *Corpo e Didática*: `DM Sans` / `Plus Jakarta Sans` para leitura fluida e confortável de explicações técnicas.
-  - *Identificadores e Código*: `font-mono tabular-nums` para CVEs, CWEs e snippets de exemplo.
-- **Disciplina Anti-Slop**:
-  - Sem tags de status fictícias ("ONLINE // LATENCY: 2ms") ou comentários de código em títulos.
-  - Zero pílulas desordenadas: metadados exibidos com separadores tipográficos limpos (`·` ou `/`).
-  - Navegação do topo seguindo o contrato de 3 zonas: Logotipo *Security X* à esquerda, links das abas ao centro, botão de ação à direita.
+1. **Endpoint de Autenticação no Backend (`server.ts`)**:
+   - `POST /api/admin/login`: Valida rigorosamente as credenciais fornecidas (`Secutiry159` e `159_753.`).
+   - Retorna token de sessão assinado e perfil de administrador com timestamp de expiração.
+   - Middleware de autorização para proteger rotas mutáveis (`POST /api/vulnerabilities`, `PUT /api/vulnerabilities/:id`, `DELETE /api/vulnerabilities/:id`, `PATCH /api/suggestions/:id/status`).
+2. **Componente de Login no Frontend (`src/components/AdminLoginModal.tsx` ou tela de login dedicada)**:
+   - Interface Cyber Dark sofisticada com proteção visual de senha (mostrar/ocultar senha), validação em tempo real e bloqueio de tentativas sucessivas com atraso artificial (anti-força bruta).
+3. **Persistência de Sessão**:
+   - Armazenamento em `sessionStorage` seguro (limpa ao fechar a guia) com botão de logout explícito no painel.
 
 ---
 
 ### 3. Key Product Decisions & Trade-Offs
 
-- **Decisão 1: Arquitetura Full-Stack com API Express e Vite**:
-  - *Abordagem*: Servidor Express em Node.js servindo endpoints REST em `/api/*`, integrado ao ciclo de desenvolvimento do Vite e servindo a aplicação React completa.
-  - *Justificativa*: Atende perfeitamente ao requisito explícito de ter "back-end, API e Front-end utilizando HTML, Node.JS, JS, CSS e Postgre".
-- **Decisão 2: Modelo de Banco de Dados e Compatibilidade PostgreSQL**:
-  - *Abordagem*: Criação de esquema de banco de dados relacional formal estruturado em SQL compatível com PostgreSQL (`CREATE TABLE vulnerabilities (...)`, `CREATE TABLE suggestions (...)`, `CREATE TABLE categories (...)`), acompanhado de persistência transacional e endpoint de exportação de dados DDL/DML para PostgreSQL.
-  - *Justificativa*: Garante que a aplicação funcione de ponta a ponta instantaneamente sem depender de provisionamento prévio, mas com 100% de compatibilidade e scripts para PostgreSQL.
-- **Decisão 3: Experiência de Catálogo Estilo Streaming na Seção 2**:
-  - *Abordagem*: Fileiras horizontais agrupadas por categoria (ex.: *Top 10 OWASP*, *Ataques de Rede & Camada de Transporte*, *Falhas de Controle de Acesso*, *Injeções & Parser*, *Criptografia & Sessões*) com controles de rolagem lateral suave (setas de navegação e arraste) e cards que expandem no hover revelando sinopse rápida e severidade.
-  - *Justificativa*: Transforma o estudo de vulnerabilidades em uma experiência visual familiar e atrativa para estudantes, fugindo de glossários monótonos em lista simples.
+- **Decisão 1: Distribuição das novas vulnerabilidades nas categorias existentes**:
+  - *Abordagem*: Alocar os novos termos nas categorias pré-estabelecidas com tags explícitas referenciando o artigo da UFPR e os conceitos de plataformização/IA.
+  - *Justificativa*: Mantém a consistência da experiência de catálogo streaming familiar aos estudantes enquanto expande a profundidade acadêmica do site.
+- **Decisão 2: Segregação e Proteção do Painel Administrativo**:
+  - *Abordagem*: Remover o acesso irrestrito da barra pública. Apenas usuários autenticados com o login `Secutiry159` e senha `159_753.` terão acesso à interface administrativa e aos endpoints de mutação.
+  - *Justificativa*: Atende expressamente ao requisito de segurança e privacidade dos dados do catálogo solicitado pelo usuário.
 
 ---
 
-### 4. Technical Architecture & Data Strategy
+### 4. Technical Architecture & File Updates
 
-#### Diagrama de Arquitetura do Sistema
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React + Tailwind)                     │
-│                                                                        │
-│  ┌───────────────────────┐  ┌────────────────────────────────────────┐ │
-│  │     Top Navigation    │  │  Abas de Navegação:                    │ │
-│  │   "Security X" Brand  │  │  [Início (Scroll)] [Sugestões] [Admin] │ │
-│  └───────────────────────┘  └────────────────────────────────────────┘ │
-│                                                                        │
-│  [Aba 1 & 2 - Página Inicial em Scroll Contínuo]                       │
-│  ├─ Seção 1 (Scroll): Hero + Descrição Oficial + Busca + Filtros       │
-│  │                    + Botão Flutuante (Canto Inferior Direito) ──┐   │
-│  └─ Seção 2 (Scroll): Fileiras de Streaming (Carrosséis por Categoria)│   │
-│                       └─ Card Click -> Modal de Detalhes da Falha     │   │
-│                                                                        │
-│  [Aba 3 - Tela Dedicada] <─────────────────────────────────────────────┘
-│  └─ Formulário de Sugestões da Comunidade (Validação + Feedback)       │
-│                                                                        │
-│  [Aba 4 - Tela Dedicada]                                               │
-│  └─ Painel Administrativo (CRUD de Vulnerabilidades + Sugestões)       │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Requisições HTTP (JSON REST API)
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        BACKEND API (Node.js + Express)                 │
-│                                                                        │
-│  Rotas REST da API:                                                    │
-│  ├── GET    /api/vulnerabilities           (Listagem com busca e filtro)│
-│  ├── POST   /api/vulnerabilities           (Criação pelo Admin)        │
-│  ├── PUT    /api/vulnerabilities/:id       (Atualização pelo Admin)    │
-│  ├── DELETE /api/vulnerabilities/:id       (Exclusão pelo Admin)       │
-│  ├── GET    /api/categories                (Categorias temáticas)      │
-│  ├── GET    /api/suggestions               (Listagem de sugestões)     │
-│  ├── POST   /api/suggestions               (Envio por estudantes)      │
-│  ├── PATCH  /api/suggestions/:id/status    (Aprovação/Rejeição Admin)  │
-│  └── GET    /api/database/export-sql       (Download do DDL PostgreSQL)│
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                      CAMADA DE PERSISTÊNCIA & POSTGRESQL                │
-│                                                                        │
-│  ├── src/db/schema.sql      (Definição DDL relacional para PostgreSQL) │
-│  ├── src/db/seeds.sql       (Dados iniciais com +15 vulnerabilidades)  │
-│  └── src/db/store.ts        (Repositório transacional em Node.js com   │
-│                              persistência em disco e suporte a SQL)    │
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-#### Modelo de Dados Relacional (PostgreSQL)
-
-```sql
--- Schema Relacional PostgreSQL
-CREATE TABLE categories (
-    id VARCHAR(50) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    icon_name VARCHAR(50)
-);
-
-CREATE TABLE vulnerabilities (
-    id VARCHAR(50) PRIMARY KEY,
-    title VARCHAR(150) NOT NULL,
-    category_id VARCHAR(50) REFERENCES categories(id),
-    severity VARCHAR(20) NOT NULL CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
-    short_summary TEXT NOT NULL,
-    detailed_description TEXT NOT NULL,
-    practical_example TEXT NOT NULL,
-    mitigation TEXT NOT NULL,
-    cwe_id VARCHAR(50),
-    owasp_reference VARCHAR(100),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE suggestions (
-    id VARCHAR(50) PRIMARY KEY,
-    term_title VARCHAR(150) NOT NULL,
-    category_id VARCHAR(50),
-    severity VARCHAR(20),
-    description TEXT NOT NULL,
-    example TEXT,
-    student_name VARCHAR(100),
-    student_email VARCHAR(100),
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### Mapeamento de Interação dos Componentes
-
-- **Busca em Tempo Real**: Filtra instantaneamente os títulos, resumos e tags no catálogo de streaming sem recarregar a página.
-- **Carrosséis de Streaming**: Controles táteis de avançar/voltar por categoria, contadores de itens e abertura suave do modal de detalhamento da falha.
-- **Botão Flutuante de Sugestões**: Posicionado fixo no canto inferior direito (`fixed bottom-6 right-6`), com ícone indicativo e texto de atalho, levando suavemente para a Aba 3 de Sugestões.
-- **Painel Administrativo com Abas Internas**:
-  - *Gerenciar Termos*: Tabela paginada com busca, modal para criar/editar com preview em tempo real e confirmação segura de exclusão.
-  - *Moderar Sugestões*: Botões de "Aprovar como Vulnerabilidade" e "Rejeitar", facilitando a incorporação imediata de colaborações dos estudantes ao catálogo.
-  - *Banco de Dados*: Exportação com um clique do script DDL e DML SQL para PostgreSQL.
+1. `src/db/seeds.sql` e `src/db/store.ts`:
+   - Adicionar os 7 novos registros completos de vulnerabilidades com metadados do artigo científico da UFPR.
+2. `server.ts`:
+   - Implementar rota `POST /api/admin/login` e middleware de validação de autenticação para proteger operações administrativas.
+3. `src/components/Navbar.tsx`:
+   - Atualizar a navegação: se desautenticado, exibir link discreto "Acesso Restrito"; se autenticado, exibir "Painel Admin" com botão de logout rápido.
+4. `src/components/AdminLogin.tsx`:
+   - Nova tela / modal de autenticação dedicada com os campos de Login e Senha solicitados.
+5. `src/components/AdminView.tsx`:
+   - Integrar logout seguro e validação de sessão ativa antes de permitir visualização de termos e moderação.
+6. `src/App.tsx`:
+   - Gerenciar estado global de autenticação `isAdminAuthenticated` e roteamento seguro.

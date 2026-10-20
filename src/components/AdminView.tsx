@@ -25,6 +25,8 @@ interface AdminViewProps {
   categories: Category[];
   vulnerabilities: Vulnerability[];
   suggestions: Suggestion[];
+  authToken: string;
+  onLogout: () => void;
   onDataChanged: () => void;
   onBackToHome: () => void;
 }
@@ -33,6 +35,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
   categories,
   vulnerabilities,
   suggestions,
+  authToken,
+  onLogout,
   onDataChanged,
   onBackToHome,
 }) => {
@@ -112,7 +116,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
         // PUT update
         const res = await fetch(`/api/vulnerabilities/${editingVuln.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
           body: JSON.stringify(formVuln),
         });
         if (!res.ok) throw new Error('Falha ao atualizar fragilidade');
@@ -121,7 +128,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
         // POST create
         const res = await fetch('/api/vulnerabilities', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
           body: JSON.stringify(formVuln),
         });
         if (!res.ok) throw new Error('Falha ao cadastrar fragilidade');
@@ -142,7 +152,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
     }
 
     try {
-      const res = await fetch(`/api/vulnerabilities/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/vulnerabilities/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
       if (!res.ok) throw new Error('Falha ao remover fragilidade');
       showNotice('success', `Fragilidade "${title}" removida do catálogo.`);
       onDataChanged();
@@ -156,7 +171,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
     try {
       const res = await fetch(`/api/suggestions/${suggestion.id}/approve-to-vuln`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
           title: suggestion.term_title,
           category_id: suggestion.category_id,
@@ -181,7 +199,10 @@ export const AdminView: React.FC<AdminViewProps> = ({
     try {
       const res = await fetch(`/api/suggestions/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
         body: JSON.stringify({
           status: 'rejected',
           admin_notes: 'Revisado pelo administrador.',
@@ -211,20 +232,29 @@ export const AdminView: React.FC<AdminViewProps> = ({
   return (
     <div className="w-full py-10 px-6 max-w-7xl mx-auto">
       {/* Back button */}
-      <button
-        onClick={onBackToHome}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-cyan-400 transition-colors mb-6 cursor-pointer"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        <span>Voltar para a Página Inicial & Catálogo</span>
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button
+          onClick={onBackToHome}
+          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Voltar para a Página Inicial & Catálogo</span>
+        </button>
+
+        <button
+          onClick={onLogout}
+          className="text-xs text-red-400 hover:text-red-300 font-medium px-3 py-1.5 rounded-lg border border-red-900/60 bg-red-950/30 transition-colors cursor-pointer"
+        >
+          Encerrar Sessão de Administrador
+        </button>
+      </div>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-950/60 border border-indigo-800/40 text-indigo-300 text-xs font-mono mb-2">
             <ShieldAlert className="w-3.5 h-3.5 text-indigo-400" />
-            <span>ABA 4 · PAINEL DO ADMINISTRADOR</span>
+            <span>PAINEL EXCLUSIVO DO ADMINISTRADOR (Sessão Segura)</span>
           </div>
           <h2 className="text-3xl font-extrabold font-display text-white">
             Administração do Security X
@@ -234,13 +264,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-slate-900 font-bold text-xs rounded-xl shadow-md shadow-cyan-400/20 transition-all cursor-pointer whitespace-nowrap self-start sm:self-auto"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Nova Fragilidade</span>
-        </button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={handleOpenCreateModal}
+            className="flex items-center gap-2 px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-slate-900 font-bold text-xs rounded-xl shadow-md shadow-cyan-400/20 transition-all cursor-pointer whitespace-nowrap"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Nova Fragilidade</span>
+          </button>
+        </div>
       </div>
 
       {/* Global Feedback Notice */}

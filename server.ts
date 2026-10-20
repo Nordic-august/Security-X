@@ -17,6 +17,71 @@ async function startServer() {
   // API Endpoints
   // ==========================================
 
+  // ==========================================
+  // Autenticação Administrativa Restrita
+  // Login: Secutiry159 | Senha: 159_753.
+  // ==========================================
+  const ADMIN_CREDENTIALS = {
+    username: 'Secutiry159',
+    password: '159_753.',
+  };
+
+  const activeAdminTokens = new Set<string>();
+
+  const authenticateAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Acesso restrito. Faça login como administrador para continuar.' });
+    }
+    const token = authHeader.split(' ')[1];
+    if (!activeAdminTokens.has(token)) {
+      return res.status(401).json({ error: 'Sessão administrativa expirada ou inválida.' });
+    }
+    next();
+  };
+
+  // Login do Administrador
+  app.post('/api/admin/login', (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
+        const token = `secx_adm_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        activeAdminTokens.add(token);
+        return res.json({
+          success: true,
+          token,
+          user: ADMIN_CREDENTIALS.username,
+          message: 'Autenticado com sucesso no Painel de Administração Security X',
+        });
+      }
+      return res.status(401).json({ error: 'Credenciais de administrador incorretas.' });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro no servidor de autenticação', details: err.message });
+    }
+  });
+
+  // Verificação de Sessão do Administrador
+  app.get('/api/admin/verify', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      if (activeAdminTokens.has(token)) {
+        return res.json({ authenticated: true, user: ADMIN_CREDENTIALS.username });
+      }
+    }
+    res.json({ authenticated: false });
+  });
+
+  // Logout do Administrador
+  app.post('/api/admin/logout', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      activeAdminTokens.delete(token);
+    }
+    res.json({ success: true, message: 'Sessão administrativa encerrada.' });
+  });
+
   // 1. Health & Statistics
   app.get('/api/health', (req, res) => {
     const vulns = securityStore.getVulnerabilities();
@@ -46,7 +111,7 @@ async function startServer() {
     }
   });
 
-  // 3. Vulnerabilities (Catalog & Search)
+  // 3. Vulnerabilities (Catalog & Search - Acesso Público de Leitura)
   app.get('/api/vulnerabilities', (req, res) => {
     try {
       const { q, category, severity } = req.query;
@@ -73,8 +138,8 @@ async function startServer() {
     }
   });
 
-  // 4. Admin CRUD for Vulnerabilities
-  app.post('/api/vulnerabilities', (req, res) => {
+  // 4. Admin CRUD for Vulnerabilities (Protegido por Autenticação)
+  app.post('/api/vulnerabilities', authenticateAdmin, (req, res) => {
     try {
       const {
         title,
@@ -114,7 +179,7 @@ async function startServer() {
     }
   });
 
-  app.put('/api/vulnerabilities/:id', (req, res) => {
+  app.put('/api/vulnerabilities/:id', authenticateAdmin, (req, res) => {
     try {
       const updated = securityStore.updateVulnerability(req.params.id, req.body);
       if (!updated) {
@@ -126,7 +191,7 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/vulnerabilities/:id', (req, res) => {
+  app.delete('/api/vulnerabilities/:id', authenticateAdmin, (req, res) => {
     try {
       const deleted = securityStore.deleteVulnerability(req.params.id);
       if (!deleted) {
@@ -173,7 +238,7 @@ async function startServer() {
     }
   });
 
-  app.patch('/api/suggestions/:id/status', (req, res) => {
+  app.patch('/api/suggestions/:id/status', authenticateAdmin, (req, res) => {
     try {
       const { status, admin_notes } = req.body;
       if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
@@ -190,7 +255,7 @@ async function startServer() {
     }
   });
 
-  app.post('/api/suggestions/:id/approve-to-vuln', (req, res) => {
+  app.post('/api/suggestions/:id/approve-to-vuln', authenticateAdmin, (req, res) => {
     try {
       const vuln = securityStore.convertSuggestionToVulnerability(req.params.id, req.body);
       if (!vuln) {

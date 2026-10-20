@@ -6,6 +6,7 @@ import { VulnerabilityModal } from './components/VulnerabilityModal';
 import { FloatingSuggestionButton } from './components/FloatingSuggestionButton';
 import { SuggestionsView } from './components/SuggestionsView';
 import { AdminView } from './components/AdminView';
+import { AdminLogin } from './components/AdminLogin';
 import { Footer } from './components/Footer';
 import { Category, Vulnerability, Suggestion, ActiveTab } from './types';
 
@@ -21,6 +22,10 @@ export default function App() {
   const [selectedSeverity, setSelectedSeverity] = useState('all');
   const [suggestionInitialTitle, setSuggestionInitialTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Admin Authentication & Invisibility Controls
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [authToken, setAuthToken] = useState<string>('');
 
   // Load all data from API
   const loadData = async () => {
@@ -53,8 +58,45 @@ export default function App() {
     }
   };
 
+  // Verify saved admin token on initial mount
   useEffect(() => {
     loadData();
+
+    const savedToken = sessionStorage.getItem('secx_admin_token');
+    if (savedToken) {
+      fetch('/api/admin/verify', {
+        headers: { Authorization: `Bearer ${savedToken}` },
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.authenticated) {
+            setIsAdminAuthenticated(true);
+            setAuthToken(savedToken);
+          } else {
+            sessionStorage.removeItem('secx_admin_token');
+          }
+        })
+        .catch(() => {
+          sessionStorage.removeItem('secx_admin_token');
+        });
+    }
+
+    // Check if initial URL includes #admin or ?admin
+    if (window.location.hash === '#admin' || window.location.search.includes('admin')) {
+      setActiveTab('admin');
+    }
+
+    // Keyboard listener for secret shortcut (Ctrl + Shift + A or Cmd + Shift + A)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setActiveTab('admin');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Filter vulnerabilities based on search and severity
@@ -92,11 +134,44 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const pendingCount = suggestions.filter(s => s.status === 'pending').length;
+  // Secret admin entry trigger (accessible by clicking secret trigger or shortcut)
+  const handleSecretAdminTrigger = () => {
+    setActiveTab('admin');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle successful administrator login
+  const handleAdminLoginSuccess = (token: string) => {
+    sessionStorage.setItem('secx_admin_token', token);
+    setAuthToken(token);
+    setIsAdminAuthenticated(true);
+    setActiveTab('admin');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle administrator logout
+  const handleAdminLogout = async () => {
+    try {
+      if (authToken) {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+      }
+    } catch (e) {
+      console.error('Erro no logout:', e);
+    } finally {
+      sessionStorage.removeItem('secx_admin_token');
+      setAuthToken('');
+      setIsAdminAuthenticated(false);
+      setActiveTab('home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#090D16] text-slate-100">
-      {/* 1. Header Navigation Bar (3-zone contract) */}
+      {/* 1. Header Navigation Bar (Public for ordinary students, secret admin status if logged in) */}
       <Navbar
         activeTab={activeTab}
         onSelectTab={tab => {
@@ -104,7 +179,9 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         onScrollToCatalog={handleScrollToCatalog}
-        pendingSuggestionsCount={pendingCount}
+        isAdminAuthenticated={isAdminAuthenticated}
+        onAdminLogout={handleAdminLogout}
+        onSecretAdminTrigger={handleSecretAdminTrigger}
       />
 
       {/* Main Content Area */}
@@ -163,20 +240,34 @@ export default function App() {
               />
             )}
 
-            {/* VIEW 4: Aba Separada - Painel Administrativo */}
+            {/* VIEW 4: Aba Separada e Restrita - Painel Administrativo com Login Obrigatório */}
             {activeTab === 'admin' && (
-              <AdminView
-                categories={categories}
-                vulnerabilities={vulnerabilities}
-                suggestions={suggestions}
-                onDataChanged={() => {
-                  loadData();
-                }}
-                onBackToHome={() => {
-                  setActiveTab('home');
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              />
+              <>
+                {!isAdminAuthenticated ? (
+                  <AdminLogin
+                    onSuccess={handleAdminLoginSuccess}
+                    onCancel={() => {
+                      setActiveTab('home');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  />
+                ) : (
+                  <AdminView
+                    categories={categories}
+                    vulnerabilities={vulnerabilities}
+                    suggestions={suggestions}
+                    authToken={authToken}
+                    onLogout={handleAdminLogout}
+                    onDataChanged={() => {
+                      loadData();
+                    }}
+                    onBackToHome={() => {
+                      setActiveTab('home');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  />
+                )}
+              </>
             )}
           </>
         )}
@@ -190,12 +281,14 @@ export default function App() {
         onSuggestImprovement={handleSuggestImprovement}
       />
 
-      {/* Footer */}
+      {/* Footer com gatilho discreto de administrador */}
       <Footer
         onSelectTab={tab => {
           setActiveTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        onSecretAdminTrigger={handleSecretAdminTrigger}
+        isAdminAuthenticated={isAdminAuthenticated}
       />
     </div>
   );
