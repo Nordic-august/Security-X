@@ -4,23 +4,26 @@ import {
   CheckCircle2,
   AlertCircle,
   Lightbulb,
-  Clock,
-  User,
+  User as UserIcon,
   Mail,
   Shield,
   ArrowLeft,
-  Flame,
-  AlertTriangle,
-  Info,
-  ShieldCheck,
+  Lock,
+  UserCheck,
+  ExternalLink,
 } from 'lucide-react';
-import { Category, Suggestion, SeverityLevel } from '../types';
+import { Category, Suggestion, SeverityLevel, User } from '../types';
+import { AvatarDisplay } from './AvatarDisplay';
 
 interface SuggestionsViewProps {
   categories: Category[];
   initialTermTitle?: string;
   onBackToHome: () => void;
   onSuggestionSubmitted?: () => void;
+  currentStudentUser: User | null;
+  studentToken: string;
+  onOpenStudentAuth: () => void;
+  onGoToProfile: () => void;
 }
 
 export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
@@ -28,6 +31,10 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
   initialTermTitle = '',
   onBackToHome,
   onSuggestionSubmitted,
+  currentStudentUser,
+  studentToken,
+  onOpenStudentAuth,
+  onGoToProfile,
 }) => {
   const [formData, setFormData] = useState({
     term_title: initialTermTitle,
@@ -35,8 +42,6 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
     severity: 'Medium' as SeverityLevel,
     description: '',
     example: '',
-    student_name: '',
-    student_email: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +50,7 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
   const [recentSuggestions, setRecentSuggestions] = useState<Suggestion[]>([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(false);
 
-  // Fetch recent suggestions
+  // Fetch recent approved / public suggestions
   const fetchRecent = async () => {
     try {
       setIsLoadingRecent(true);
@@ -69,6 +74,12 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
+    if (!currentStudentUser || !studentToken) {
+      setErrorMsg('É necessário estar conectado com uma conta de estudante para enviar sugestões.');
+      onOpenStudentAuth();
+      return;
+    }
+
     if (!formData.term_title.trim() || !formData.description.trim()) {
       setErrorMsg('Por favor, preencha o nome do termo e a explicação.');
       return;
@@ -78,8 +89,19 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
       setIsSubmitting(true);
       const res = await fetch('/api/suggestions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${studentToken}`,
+        },
+        body: JSON.stringify({
+          term_title: formData.term_title.trim(),
+          category_id: formData.category_id,
+          severity: formData.severity,
+          description: formData.description.trim(),
+          example: formData.example.trim(),
+          student_name: currentStudentUser.username,
+          student_email: currentStudentUser.email,
+        }),
       });
 
       if (!res.ok) {
@@ -95,8 +117,6 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
         severity: 'Medium',
         description: '',
         example: '',
-        student_name: '',
-        student_email: '',
       });
 
       fetchRecent();
@@ -123,15 +143,71 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
       <div className="mb-8 pb-6 border-b border-slate-800">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-800/40 text-cyan-300 text-xs font-mono mb-3">
           <Lightbulb className="w-3.5 h-3.5 text-cyan-400" />
-          <span>ABA 3 · COLABORAÇÃO ACADÊMICA</span>
+          <span>ABA 3 · COLABORAÇÃO ACADÊMICA & COMUNIDADE</span>
         </div>
         <h2 className="text-3xl font-extrabold font-display text-white mb-2">
-          Central de Sugestões da Comunidade
+          Central de Sugestões de Fragilidades
         </h2>
         <p className="text-sm text-slate-300 leading-relaxed max-w-2xl">
-          Conhece uma vulnerabilidade ou falha de sistema relevante que ainda não está no Security X? Envie sua sugestão abaixo. Os administradores analisarão seu envio na Aba 4 para publicação no catálogo streaming.
+          Conhece uma vulnerabilidade ou falha de sistema relevante que ainda não está catalogada no Security X? Envie sua sugestão abaixo. Os envios são analisados pela administração para publicação no catálogo streaming.
         </p>
       </div>
+
+      {/* Student Authentication Requirement Banner if NOT LOGGED IN */}
+      {!currentStudentUser ? (
+        <div className="mb-8 p-6 rounded-2xl bg-[#101728] border-2 border-dashed border-cyan-500/40 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-400">
+              <Lock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white mb-1">
+                Identificação de Estudante Obrigatória
+              </h3>
+              <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                Para sugerir novas terminologias e ideias de fragilidades ao Security X, é necessário possuir uma conta de estudante com e-mail real. Isso garante a idoneidade acadêmica e permite que você acompanhe o status de aprovação de cada envio no seu perfil.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onOpenStudentAuth}
+            className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer whitespace-nowrap shrink-0"
+          >
+            <UserIcon className="w-4 h-4" />
+            <span>Entrar / Cadastrar-se</span>
+          </button>
+        </div>
+      ) : (
+        /* Logged In Info Strip */
+        <div className="mb-8 p-4 rounded-xl bg-[#101728] border border-cyan-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AvatarDisplay avatarId={currentStudentUser.avatar_id} size="sm" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white">
+                  Conectado como {currentStudentUser.username}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800 text-emerald-400 text-[10px] font-mono flex items-center gap-1">
+                  <UserCheck className="w-3 h-3" />
+                  <span>Estudante Verificado</span>
+                </span>
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono">
+                {currentStudentUser.email}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={onGoToProfile}
+            className="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 font-semibold cursor-pointer underline decoration-cyan-500/50 hover:decoration-cyan-400"
+          >
+            <span>Ver minhas sugestões no Meu Perfil</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Success Banner */}
       {submittedId && (
@@ -142,14 +218,22 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
               Sugestão enviada com sucesso! (ID: {submittedId})
             </strong>
             <p className="text-xs text-emerald-300 leading-relaxed">
-              Obrigado por contribuir com o Security X! Sua sugestão foi encaminhada para a fila de moderação dos administradores (Aba 4). Assim que aprovada, ela passará a compor o catálogo no estilo streaming.
+              Obrigado por contribuir com o Security X! Sua sugestão foi vinculada ao seu perfil e encaminhada para a fila de moderação dos administradores (Aba 4).
             </p>
-            <button
-              onClick={() => setSubmittedId(null)}
-              className="mt-3 text-xs text-white underline hover:text-emerald-100 cursor-pointer"
-            >
-              Enviar outra sugestão
-            </button>
+            <div className="mt-3 flex items-center gap-4">
+              <button
+                onClick={() => setSubmittedId(null)}
+                className="text-xs text-white underline hover:text-emerald-100 cursor-pointer"
+              >
+                Enviar outra sugestão
+              </button>
+              <button
+                onClick={onGoToProfile}
+                className="text-xs text-cyan-300 hover:text-cyan-200 font-semibold underline cursor-pointer"
+              >
+                Ir para o Meu Perfil →
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -165,7 +249,9 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
       {/* Suggestion Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-[#101728] border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6"
+        className={`bg-[#101728] border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6 ${
+          !currentStudentUser ? 'opacity-50 pointer-events-none select-none filter blur-[0.5px]' : ''
+        }`}
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Term Name */}
@@ -176,9 +262,10 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
             <input
               type="text"
               required
+              disabled={!currentStudentUser}
               value={formData.term_title}
               onChange={e => setFormData({ ...formData, term_title: e.target.value })}
-              placeholder="Ex: Cross-Site Request Forgery (CSRF), Race Condition, Buffer Overflow..."
+              placeholder="Ex: Cross-Site Request Forgery (CSRF), Race Condition, Buffer Overflow, SQL Injection..."
               className="w-full px-4 py-3 bg-[#090D16] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
             />
           </div>
@@ -190,6 +277,7 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
             </label>
             <select
               value={formData.category_id}
+              disabled={!currentStudentUser}
               onChange={e => setFormData({ ...formData, category_id: e.target.value })}
               className="w-full px-4 py-3 bg-[#090D16] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-400 cursor-pointer"
             >
@@ -208,6 +296,7 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
             </label>
             <select
               value={formData.severity}
+              disabled={!currentStudentUser}
               onChange={e =>
                 setFormData({ ...formData, severity: e.target.value as SeverityLevel })
               }
@@ -229,6 +318,7 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
           <textarea
             required
             rows={4}
+            disabled={!currentStudentUser}
             value={formData.description}
             onChange={e => setFormData({ ...formData, description: e.target.value })}
             placeholder="Explique com suas palavras o que é essa fragilidade, como ela ocorre e por que representa um risco para sistemas da informação..."
@@ -243,6 +333,7 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
           </label>
           <textarea
             rows={3}
+            disabled={!currentStudentUser}
             value={formData.example}
             onChange={e => setFormData({ ...formData, example: e.target.value })}
             placeholder="Exemplo de código vulnerável, comando de exploit, requisição HTTP maliciosa ou história real..."
@@ -250,46 +341,19 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
           />
         </div>
 
-        {/* Student Info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-800">
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1.5 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-slate-500" />
-              <span>Seu Nome ou Usuário Acadêmico (Opcional)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.student_name}
-              onChange={e => setFormData({ ...formData, student_name: e.target.value })}
-              placeholder="Ex: Carlos Oliveira (Estudante SI)"
-              className="w-full px-4 py-2.5 bg-[#090D16] border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-400"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 mb-1.5 flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-slate-500" />
-              <span>E-mail Acadêmico para Contato (Opcional)</span>
-            </label>
-            <input
-              type="email"
-              value={formData.student_email}
-              onChange={e => setFormData({ ...formData, student_email: e.target.value })}
-              placeholder="Ex: carlos@universidade.edu.br"
-              className="w-full px-4 py-2.5 bg-[#090D16] border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-cyan-400"
-            />
-          </div>
-        </div>
-
         {/* Submit Button */}
-        <div className="pt-4 flex items-center justify-end">
+        <div className="pt-4 flex items-center justify-between">
+          <span className="text-xs text-slate-400">
+            {currentStudentUser ? `Envio autenticado como @${currentStudentUser.username}` : 'Autenticação necessária'}
+          </span>
+
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !currentStudentUser}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-bold text-xs sm:text-sm rounded-xl shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50"
           >
             <Send className="w-4 h-4 text-slate-950" />
-            <span>{isSubmitting ? 'Enviando...' : 'Enviar Sugestão para o Catálogo'}</span>
+            <span>{isSubmitting ? 'Enviando...' : 'Enviar Sugestão para Moderação'}</span>
           </button>
         </div>
       </form>
@@ -298,10 +362,10 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
       <div className="mt-14 pt-8 border-t border-slate-800">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold font-display text-white">
-            Sugestões Enviadas Recentemente
+            Sugestões Enviadas Recentemente pela Comunidade
           </h3>
           <span className="text-xs text-slate-400 font-mono">
-            {recentSuggestions.length} cadastradas
+            {recentSuggestions.length} registradas
           </span>
         </div>
 
@@ -335,7 +399,7 @@ export const SuggestionsView: React.FC<SuggestionsViewProps> = ({
                     </div>
                     <p className="text-slate-400 line-clamp-1">{s.description}</p>
                     <span className="text-[11px] text-slate-500 mt-1 block">
-                      Enviado por: {s.student_name || 'Estudante Anônimo'} · {new Date(s.created_at).toLocaleDateString('pt-BR')}
+                      Enviado por: {s.student_name || 'Estudante da Comunidade'} · {new Date(s.created_at).toLocaleDateString('pt-BR')}
                     </span>
                   </div>
                 </div>

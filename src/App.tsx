@@ -7,8 +7,10 @@ import { FloatingSuggestionButton } from './components/FloatingSuggestionButton'
 import { SuggestionsView } from './components/SuggestionsView';
 import { AdminView } from './components/AdminView';
 import { AdminLogin } from './components/AdminLogin';
+import { StudentAuthModal } from './components/StudentAuthModal';
+import { StudentProfileView } from './components/StudentProfileView';
 import { Footer } from './components/Footer';
-import { Category, Vulnerability, Suggestion, ActiveTab } from './types';
+import { Category, Vulnerability, Suggestion, ActiveTab, User, SiteSettings } from './types';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('home');
@@ -17,24 +19,38 @@ export default function App() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [selectedVulnerability, setSelectedVulnerability] = useState<Vulnerability | null>(null);
   
+  // Site dynamic configuration
+  const [siteSettings, setSiteSettings] = useState<SiteSettings>({
+    site_title: 'Security X',
+    site_description: 'Esse site tem como objetivo apresentar um glossário de fragilidades em sistemas da informação, além de mostrar exemplos e dar explicações acerca dessas mesmas vulnerabilidades de forma acessível e facilitada. Tendo como público alvo os estudantes da área.',
+    hero_badge: 'PORTAL ACADÊMICO DE SEGURANÇA DEFENSIVA & OFENSIVA',
+    footer_text: 'Plataforma educacional de conscientização e estudo de fragilidades em sistemas da informação, dedicada a estudantes e pesquisadores.',
+  });
+
   // Search & Filters for Home Page
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('all');
   const [suggestionInitialTitle, setSuggestionInitialTitle] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Student Community Authentication State
+  const [currentStudentUser, setCurrentStudentUser] = useState<User | null>(null);
+  const [studentToken, setStudentToken] = useState<string>('');
+  const [isStudentAuthModalOpen, setIsStudentAuthModalOpen] = useState(false);
+
   // Admin Authentication & Invisibility Controls
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [authToken, setAuthToken] = useState<string>('');
 
-  // Load all data from API
+  // Load all public data & settings from API
   const loadData = async () => {
     try {
       setIsLoading(true);
-      const [catsRes, vulnsRes, sugsRes] = await Promise.all([
+      const [catsRes, vulnsRes, sugsRes, settingsRes] = await Promise.all([
         fetch('/api/categories'),
         fetch('/api/vulnerabilities'),
         fetch('/api/suggestions'),
+        fetch('/api/site-settings'),
       ]);
 
       if (catsRes.ok) {
@@ -51,6 +67,11 @@ export default function App() {
         const sugs = await sugsRes.json();
         setSuggestions(sugs);
       }
+
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json();
+        setSiteSettings(settings);
+      }
     } catch (err) {
       console.error('Erro ao sincronizar dados com o backend:', err);
     } finally {
@@ -58,20 +79,46 @@ export default function App() {
     }
   };
 
-  // Verify saved admin token on initial mount
+  // Verify student token
+  const verifyStudentSession = async (token: string) => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentStudentUser(data.user);
+        setStudentToken(token);
+      } else {
+        localStorage.removeItem('secx_student_token');
+        setCurrentStudentUser(null);
+        setStudentToken('');
+      }
+    } catch (e) {
+      console.error('Erro ao verificar sessão do estudante:', e);
+    }
+  };
+
   useEffect(() => {
     loadData();
 
-    const savedToken = sessionStorage.getItem('secx_admin_token');
-    if (savedToken) {
+    // Check student session
+    const savedStudentToken = localStorage.getItem('secx_student_token');
+    if (savedStudentToken) {
+      verifyStudentSession(savedStudentToken);
+    }
+
+    // Check admin session
+    const savedAdminToken = sessionStorage.getItem('secx_admin_token');
+    if (savedAdminToken) {
       fetch('/api/admin/verify', {
-        headers: { Authorization: `Bearer ${savedToken}` },
+        headers: { Authorization: `Bearer ${savedAdminToken}` },
       })
         .then(res => res.json())
         .then(data => {
           if (data.authenticated) {
             setIsAdminAuthenticated(true);
-            setAuthToken(savedToken);
+            setAuthToken(savedAdminToken);
           } else {
             sessionStorage.removeItem('secx_admin_token');
           }
@@ -86,7 +133,7 @@ export default function App() {
       setActiveTab('admin');
     }
 
-    // Keyboard listener for secret shortcut (Ctrl + Shift + A or Cmd + Shift + A)
+    // Keyboard listener for secret admin shortcut (Ctrl + Shift + A or Cmd + Shift + A)
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
         e.preventDefault();
@@ -134,10 +181,29 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Secret admin entry trigger (accessible by clicking secret trigger or shortcut)
+  // Secret admin entry trigger
   const handleSecretAdminTrigger = () => {
     setActiveTab('admin');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle successful student login / register
+  const handleStudentAuthSuccess = (user: User, token: string) => {
+    localStorage.setItem('secx_student_token', token);
+    setCurrentStudentUser(user);
+    setStudentToken(token);
+    setIsStudentAuthModalOpen(false);
+  };
+
+  // Handle student logout
+  const handleStudentLogout = () => {
+    localStorage.removeItem('secx_student_token');
+    setCurrentStudentUser(null);
+    setStudentToken('');
+    if (activeTab === 'profile') {
+      setActiveTab('home');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   // Handle successful administrator login
@@ -159,7 +225,7 @@ export default function App() {
         });
       }
     } catch (e) {
-      console.error('Erro no logout:', e);
+      console.error('Erro no logout do admin:', e);
     } finally {
       sessionStorage.removeItem('secx_admin_token');
       setAuthToken('');
@@ -171,7 +237,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#090D16] text-slate-100">
-      {/* 1. Header Navigation Bar (Public for ordinary students, secret admin status if logged in) */}
+      {/* 1. Header Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         onSelectTab={tab => {
@@ -182,6 +248,12 @@ export default function App() {
         isAdminAuthenticated={isAdminAuthenticated}
         onAdminLogout={handleAdminLogout}
         onSecretAdminTrigger={handleSecretAdminTrigger}
+        currentStudentUser={currentStudentUser}
+        onOpenStudentAuth={() => setIsStudentAuthModalOpen(true)}
+        onOpenStudentProfile={() => {
+          setActiveTab('profile');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
       />
 
       {/* Main Content Area */}
@@ -189,7 +261,7 @@ export default function App() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
             <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-            <span className="text-xs font-mono text-slate-400">Carregando glossário Security X...</span>
+            <span className="text-xs font-mono text-slate-400">Carregando {siteSettings.site_title}...</span>
           </div>
         ) : (
           <>
@@ -205,6 +277,7 @@ export default function App() {
                   totalCount={vulnerabilities.length}
                   filteredCount={filteredVulnerabilities.length}
                   onScrollToCatalog={handleScrollToCatalog}
+                  siteSettings={siteSettings}
                 />
 
                 {/* Scroll Section 2: Catálogo no Estilo Streaming (Carrossel e Grade) */}
@@ -225,7 +298,7 @@ export default function App() {
               </div>
             )}
 
-            {/* VIEW 3: Aba Separada - Central de Sugestões dos Estudantes */}
+            {/* VIEW 3: Aba Separada - Central de Sugestões dos Estudantes (Requer Login) */}
             {activeTab === 'suggestions' && (
               <SuggestionsView
                 categories={categories}
@@ -236,6 +309,13 @@ export default function App() {
                 }}
                 onSuggestionSubmitted={() => {
                   loadData();
+                }}
+                currentStudentUser={currentStudentUser}
+                studentToken={studentToken}
+                onOpenStudentAuth={() => setIsStudentAuthModalOpen(true)}
+                onGoToProfile={() => {
+                  setActiveTab('profile');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
               />
             )}
@@ -269,6 +349,41 @@ export default function App() {
                 )}
               </>
             )}
+
+            {/* VIEW 5: Perfil do Estudante (Troca de senha, username, foto de perfil, minhas sugestões) */}
+            {activeTab === 'profile' && (
+              <>
+                {currentStudentUser ? (
+                  <StudentProfileView
+                    currentUser={currentStudentUser}
+                    studentToken={studentToken}
+                    onUpdateUser={updated => setCurrentStudentUser(updated)}
+                    onLogout={handleStudentLogout}
+                    onBackToHome={() => {
+                      setActiveTab('home');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    onGoToSuggestions={() => {
+                      setActiveTab('suggestions');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  />
+                ) : (
+                  <div className="max-w-md mx-auto my-16 p-8 bg-[#101728] border border-slate-800 rounded-2xl text-center">
+                    <h3 className="text-xl font-bold text-white mb-2">Acesso ao Perfil</h3>
+                    <p className="text-xs text-slate-400 mb-6">
+                      Faça login com sua conta de estudante para gerenciar suas informações e contribuições.
+                    </p>
+                    <button
+                      onClick={() => setIsStudentAuthModalOpen(true)}
+                      className="w-full py-2.5 bg-cyan-400 hover:bg-cyan-300 text-slate-900 font-bold text-xs rounded-xl shadow cursor-pointer"
+                    >
+                      Entrar ou Cadastrar
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </>
         )}
       </main>
@@ -281,6 +396,13 @@ export default function App() {
         onSuggestImprovement={handleSuggestImprovement}
       />
 
+      {/* Student Community Auth Modal */}
+      <StudentAuthModal
+        isOpen={isStudentAuthModalOpen}
+        onClose={() => setIsStudentAuthModalOpen(false)}
+        onSuccess={handleStudentAuthSuccess}
+      />
+
       {/* Footer com gatilho discreto de administrador */}
       <Footer
         onSelectTab={tab => {
@@ -289,6 +411,7 @@ export default function App() {
         }}
         onSecretAdminTrigger={handleSecretAdminTrigger}
         isAdminAuthenticated={isAdminAuthenticated}
+        siteSettings={siteSettings}
       />
     </div>
   );

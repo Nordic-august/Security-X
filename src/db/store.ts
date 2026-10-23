@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 
 export interface Category {
   id: string;
@@ -28,6 +29,7 @@ export interface Vulnerability {
 
 export interface Suggestion {
   id: string;
+  user_id?: string;
   term_title: string;
   category_id: string;
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
@@ -40,10 +42,29 @@ export interface Suggestion {
   created_at: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  password_hash: string;
+  avatar_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SiteSettings {
+  site_title: string;
+  site_description: string;
+  hero_badge: string;
+  footer_text: string;
+}
+
 interface DatabaseState {
   categories: Category[];
   vulnerabilities: Vulnerability[];
   suggestions: Suggestion[];
+  users: User[];
+  siteSettings: SiteSettings;
 }
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -397,29 +418,57 @@ const INITIAL_VULNERABILITIES: Vulnerability[] = [
 const INITIAL_SUGGESTIONS: Suggestion[] = [
   {
     id: 'sug-csrf',
+    user_id: 'user-demo-1',
     term_title: 'Cross-Site Request Forgery (CSRF)',
     category_id: 'owasp-top10',
     severity: 'High',
     description: 'Ataque que induz o navegador do usuário autenticado a executar requisições HTTP maliciosas não intencionais contra uma aplicação na qual ele está logado.',
     example: 'Um e-mail de phishing contém uma tag <img src="https://banco.com/transferir?valor=500&para=invasor">. Se o banco não usar tokens anti-CSRF, a transferência é efetuada automaticamente com a sessão ativa.',
-    student_name: 'Mariana Silva (Estudante de Segurança)',
+    student_name: 'Mariana Silva',
     student_email: 'mariana.silva@faculdade.edu.br',
-    status: 'pending',
+    status: 'approved',
+    admin_notes: 'Aprovada e incorporada ao glossário com sucesso.',
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
   },
   {
     id: 'sug-padding-oracle',
+    user_id: 'user-demo-1',
     term_title: 'Padding Oracle Attack',
     category_id: 'data-crypto',
     severity: 'High',
     description: 'Vulnerabilidade em modos de cifra de bloco como CBC onde mensagens de erro revelam se o padding criptográfico foi preenchido corretamente.',
     example: 'Ao tentar decifrar um token, a aplicação retorna HTTP 500 para padding inválido e HTTP 200 para padding correto, permitindo que o atacante decifre bytes um a um.',
-    student_name: 'Lucas Ferreira',
-    student_email: 'lucas.ferreira@computacao.uf.br',
+    student_name: 'Mariana Silva',
+    student_email: 'mariana.silva@faculdade.edu.br',
     status: 'pending',
     created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
   },
 ];
+
+const hashPassword = (password: string): string => {
+  return crypto.createHash('sha256').update(password + '_secx_salt_2026').digest('hex');
+};
+
+const INITIAL_USERS: User[] = [
+  {
+    id: 'user-demo-1',
+    username: 'MarianaSilva',
+    email: 'mariana.silva@faculdade.edu.br',
+    password_hash: hashPassword('estudante123'),
+    avatar_id: 'avatar-cyber-hacker',
+    created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    updated_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+  },
+];
+
+const INITIAL_SITE_SETTINGS: SiteSettings = {
+  site_title: 'Security X',
+  site_description:
+    'Esse site tem como objetivo apresentar um glossário de fragilidades em sistemas da informação, além de mostrar exemplos e dar explicações acerca dessas mesmas vulnerabilidades de forma acessível e facilitada. Tendo como público alvo os estudantes da área.',
+  hero_badge: 'PORTAL ACADÊMICO DE SEGURANÇA DEFENSIVA & OFENSIVA',
+  footer_text:
+    'Plataforma educacional de conscientização e estudo de fragilidades em sistemas da informação, dedicada a estudantes e pesquisadores.',
+};
 
 class SecurityStore {
   private state: DatabaseState;
@@ -436,7 +485,14 @@ class SecurityStore {
 
       if (fs.existsSync(DATA_FILE)) {
         const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        return {
+          categories: parsed.categories || INITIAL_CATEGORIES,
+          vulnerabilities: parsed.vulnerabilities || INITIAL_VULNERABILITIES,
+          suggestions: parsed.suggestions || INITIAL_SUGGESTIONS,
+          users: parsed.users || INITIAL_USERS,
+          siteSettings: parsed.siteSettings || INITIAL_SITE_SETTINGS,
+        };
       }
     } catch (err) {
       console.error('Erro ao ler arquivo de dados local, usando estado inicial:', err);
@@ -446,6 +502,8 @@ class SecurityStore {
       categories: INITIAL_CATEGORIES,
       vulnerabilities: INITIAL_VULNERABILITIES,
       suggestions: INITIAL_SUGGESTIONS,
+      users: INITIAL_USERS,
+      siteSettings: INITIAL_SITE_SETTINGS,
     };
 
     this.saveState(defaultState);
@@ -463,12 +521,138 @@ class SecurityStore {
     }
   }
 
+  // ==========================================
+  // Site Settings (Editável pelo Admin)
+  // ==========================================
+  getSiteSettings(): SiteSettings {
+    return { ...this.state.siteSettings };
+  }
+
+  updateSiteSettings(newSettings: Partial<SiteSettings>): SiteSettings {
+    this.state.siteSettings = {
+      ...this.state.siteSettings,
+      ...newSettings,
+    };
+    this.saveState();
+    return this.state.siteSettings;
+  }
+
+  // ==========================================
+  // Users (Estudantes / Comunidade)
+  // ==========================================
+  registerUser(username: string, email: string, password: string, avatarId = 'avatar-cyber-hacker'): { user: Omit<User, 'password_hash'>; token: string } {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = username.trim();
+
+    // Check if email already exists
+    if (this.state.users.some(u => u.email.toLowerCase() === cleanEmail)) {
+      throw new Error('Este e-mail já está cadastrado.');
+    }
+
+    // Check if username already exists
+    if (this.state.users.some(u => u.username.toLowerCase() === cleanUsername.toLowerCase())) {
+      throw new Error('Este nome de usuário já está em uso.');
+    }
+
+    const newUser: User = {
+      id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      username: cleanUsername,
+      email: cleanEmail,
+      password_hash: hashPassword(password),
+      avatar_id: avatarId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    this.state.users.push(newUser);
+    this.saveState();
+
+    const token = `usr_tk_${newUser.id}_${Date.now()}`;
+    const { password_hash, ...safeUser } = newUser;
+    return { user: safeUser, token };
+  }
+
+  loginUser(identifier: string, password: string): { user: Omit<User, 'password_hash'>; token: string } {
+    const cleanId = identifier.trim().toLowerCase();
+    const user = this.state.users.find(
+      u => u.email.toLowerCase() === cleanId || u.username.toLowerCase() === cleanId
+    );
+
+    if (!user) {
+      throw new Error('Usuário ou e-mail não encontrado.');
+    }
+
+    const hashedInput = hashPassword(password);
+    if (user.password_hash !== hashedInput) {
+      throw new Error('Senha incorreta.');
+    }
+
+    const token = `usr_tk_${user.id}_${Date.now()}`;
+    const { password_hash, ...safeUser } = user;
+    return { user: safeUser, token };
+  }
+
+  getUserById(id: string): Omit<User, 'password_hash'> | null {
+    const user = this.state.users.find(u => u.id === id);
+    if (!user) return null;
+    const { password_hash, ...safeUser } = user;
+    return safeUser;
+  }
+
+  updateUserProfile(userId: string, updates: { username?: string; avatar_id?: string }): Omit<User, 'password_hash'> {
+    const idx = this.state.users.findIndex(u => u.id === userId);
+    if (idx === -1) throw new Error('Usuário não encontrado.');
+
+    if (updates.username && updates.username.trim() !== this.state.users[idx].username) {
+      const cleanUsername = updates.username.trim();
+      const exists = this.state.users.some(
+        u => u.id !== userId && u.username.toLowerCase() === cleanUsername.toLowerCase()
+      );
+      if (exists) throw new Error('Este nome de usuário já está em uso por outro estudante.');
+      this.state.users[idx].username = cleanUsername;
+    }
+
+    if (updates.avatar_id) {
+      this.state.users[idx].avatar_id = updates.avatar_id;
+    }
+
+    this.state.users[idx].updated_at = new Date().toISOString();
+    this.saveState();
+
+    const { password_hash, ...safeUser } = this.state.users[idx];
+    return safeUser;
+  }
+
+  updateUserPassword(userId: string, currentPassword: string, newPassword: string): boolean {
+    const idx = this.state.users.findIndex(u => u.id === userId);
+    if (idx === -1) throw new Error('Usuário não encontrado.');
+
+    if (this.state.users[idx].password_hash !== hashPassword(currentPassword)) {
+      throw new Error('A senha atual informada está incorreta.');
+    }
+
+    this.state.users[idx].password_hash = hashPassword(newPassword);
+    this.state.users[idx].updated_at = new Date().toISOString();
+    this.saveState();
+    return true;
+  }
+
+  getUserSuggestions(userId: string): Suggestion[] {
+    return this.state.suggestions
+      .filter(s => s.user_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  // ==========================================
   // Categories
+  // ==========================================
   getCategories(): Category[] {
     return [...this.state.categories].sort((a, b) => a.sort_order - b.sort_order);
   }
 
+  // ==========================================
   // Vulnerabilities
+  // ==========================================
   getVulnerabilities(query?: string, categoryId?: string, severity?: string): Vulnerability[] {
     let result = [...this.state.vulnerabilities];
 
@@ -536,7 +720,9 @@ class SecurityStore {
     return deleted;
   }
 
-  // Suggestions
+  // ==========================================
+  // Suggestions (Comunidade de Estudantes)
+  // ==========================================
   getSuggestions(status?: string): Suggestion[] {
     let result = [...this.state.suggestions];
     if (status && status !== 'all') {
@@ -592,7 +778,9 @@ class SecurityStore {
     return newVuln;
   }
 
+  // ==========================================
   // Export full PostgreSQL SQL dump
+  // ==========================================
   generatePostgresDump(): string {
     const escapeSql = (str: string) => (str ? str.replace(/'/g, "''") : '');
 
@@ -627,8 +815,19 @@ CREATE TABLE IF NOT EXISTS vulnerabilities (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id VARCHAR(50) PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    avatar_id VARCHAR(50) DEFAULT 'avatar-cyber-hacker',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS suggestions (
     id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) REFERENCES users(id) ON DELETE SET NULL,
     term_title VARCHAR(150) NOT NULL,
     category_id VARCHAR(50) REFERENCES categories(id) ON DELETE SET NULL,
     severity VARCHAR(20) DEFAULT 'Medium' CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
@@ -639,6 +838,12 @@ CREATE TABLE IF NOT EXISTS suggestions (
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     admin_notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS site_settings (
+    key VARCHAR(50) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 2. Inserção de Categorias
@@ -653,10 +858,21 @@ CREATE TABLE IF NOT EXISTS suggestions (
       sql += `INSERT INTO vulnerabilities (id, title, category_id, severity, short_summary, detailed_description, practical_example, mitigation, cwe_id, owasp_reference, attack_vector, impact_scope, created_at, updated_at) VALUES ('${escapeSql(v.id)}', '${escapeSql(v.title)}', '${escapeSql(v.category_id)}', '${escapeSql(v.severity)}', '${escapeSql(v.short_summary)}', '${escapeSql(v.detailed_description)}', '${escapeSql(v.practical_example)}', '${escapeSql(v.mitigation)}', '${escapeSql(v.cwe_id)}', '${escapeSql(v.owasp_reference)}', '${escapeSql(v.attack_vector)}', '${escapeSql(v.impact_scope)}', '${v.created_at}', '${v.updated_at}') ON CONFLICT (id) DO NOTHING;\n`;
     }
 
-    sql += '\n-- 4. Inserção de Sugestões\n';
-    for (const s of this.state.suggestions) {
-      sql += `INSERT INTO suggestions (id, term_title, category_id, severity, description, example, student_name, student_email, status, admin_notes, created_at) VALUES ('${escapeSql(s.id)}', '${escapeSql(s.term_title)}', '${escapeSql(s.category_id)}', '${escapeSql(s.severity)}', '${escapeSql(s.description)}', '${escapeSql(s.example)}', '${escapeSql(s.student_name)}', '${escapeSql(s.student_email)}', '${escapeSql(s.status)}', '${escapeSql(s.admin_notes || '')}', '${s.created_at}') ON CONFLICT (id) DO NOTHING;\n`;
+    sql += '\n-- 4. Inserção de Usuários\n';
+    for (const u of this.state.users) {
+      sql += `INSERT INTO users (id, username, email, password_hash, avatar_id, created_at, updated_at) VALUES ('${escapeSql(u.id)}', '${escapeSql(u.username)}', '${escapeSql(u.email)}', '${escapeSql(u.password_hash)}', '${escapeSql(u.avatar_id)}', '${u.created_at}', '${u.updated_at}') ON CONFLICT (id) DO NOTHING;\n`;
     }
+
+    sql += '\n-- 5. Inserção de Sugestões\n';
+    for (const s of this.state.suggestions) {
+      sql += `INSERT INTO suggestions (id, user_id, term_title, category_id, severity, description, example, student_name, student_email, status, admin_notes, created_at) VALUES ('${escapeSql(s.id)}', ${s.user_id ? `'${escapeSql(s.user_id)}'` : 'NULL'}, '${escapeSql(s.term_title)}', '${escapeSql(s.category_id)}', '${escapeSql(s.severity)}', '${escapeSql(s.description)}', '${escapeSql(s.example)}', '${escapeSql(s.student_name)}', '${escapeSql(s.student_email)}', '${escapeSql(s.status)}', '${escapeSql(s.admin_notes || '')}', '${s.created_at}') ON CONFLICT (id) DO NOTHING;\n`;
+    }
+
+    sql += '\n-- 6. Inserção de Configurações do Site\n';
+    sql += `INSERT INTO site_settings (key, value) VALUES ('site_title', '${escapeSql(this.state.siteSettings.site_title)}') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;\n`;
+    sql += `INSERT INTO site_settings (key, value) VALUES ('site_description', '${escapeSql(this.state.siteSettings.site_description)}') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;\n`;
+    sql += `INSERT INTO site_settings (key, value) VALUES ('hero_badge', '${escapeSql(this.state.siteSettings.hero_badge)}') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;\n`;
+    sql += `INSERT INTO site_settings (key, value) VALUES ('footer_text', '${escapeSql(this.state.siteSettings.footer_text)}') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;\n`;
 
     return sql;
   }

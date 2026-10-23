@@ -1,6 +1,7 @@
 import React from 'react';
-import { ShieldAlert, PlusCircle, LogOut, Shield } from 'lucide-react';
-import { ActiveTab } from '../types';
+import { ShieldAlert, Shield, LogOut, User as UserIcon } from 'lucide-react';
+import { ActiveTab, User } from '../types';
+import { AvatarDisplay } from './AvatarDisplay';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -9,6 +10,9 @@ interface NavbarProps {
   isAdminAuthenticated: boolean;
   onAdminLogout: () => void;
   onSecretAdminTrigger?: () => void;
+  currentStudentUser: User | null;
+  onOpenStudentAuth: () => void;
+  onOpenStudentProfile: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -18,10 +22,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   isAdminAuthenticated,
   onAdminLogout,
   onSecretAdminTrigger,
+  currentStudentUser,
+  onOpenStudentAuth,
+  onOpenStudentProfile,
 }) => {
   return (
     <header className="sticky top-0 z-50 w-full bg-[#090D16]/90 backdrop-blur-md border-b border-slate-800/80">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-8 px-6 py-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-6 py-3.5">
         {/* Zone 1: Brand Wordmark */}
         <div className="flex items-center gap-2.5">
           <button
@@ -97,17 +104,41 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </nav>
 
-        {/* Zone 3: 1 Primary Action */}
+        {/* Zone 3: Student Login / Profile Access in Top-Right Corner */}
         <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={() => onSelectTab('suggestions')}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded-lg shadow-sm shadow-cyan-400/20 transition-all cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Enviar Sugestão</span>
-          </button>
+          {currentStudentUser ? (
+            /* Logged-in Student Profile Pill Button */
+            <button
+              onClick={onOpenStudentProfile}
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                activeTab === 'profile'
+                  ? 'bg-cyan-950/80 border-cyan-400 ring-2 ring-cyan-400/20 text-white'
+                  : 'bg-[#101728] border-slate-700/80 hover:border-cyan-500/60 text-slate-200 hover:text-white'
+              }`}
+              title="Acessar meu perfil e gerenciar sugestões"
+            >
+              <AvatarDisplay avatarId={currentStudentUser.avatar_id} size="sm" showBorder={false} />
+              <div className="text-left hidden sm:block">
+                <span className="block text-xs font-bold leading-tight truncate max-w-[120px]">
+                  {currentStudentUser.username}
+                </span>
+                <span className="block text-[10px] text-cyan-400 font-mono">
+                  Meu Perfil
+                </span>
+              </div>
+            </button>
+          ) : (
+            /* Guest / Student Login Button */
+            <button
+              onClick={onOpenStudentAuth}
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-900 bg-cyan-400 hover:bg-cyan-300 rounded-xl shadow-sm shadow-cyan-400/20 transition-all cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <UserIcon className="w-4 h-4" />
+              <span>Entrar / Cadastrar</span>
+            </button>
+          )}
 
-          {/* Logout button if authenticated */}
+          {/* Admin Logout button if admin authenticated */}
           {isAdminAuthenticated && (
             <button
               onClick={onAdminLogout}

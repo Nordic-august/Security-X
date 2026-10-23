@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
   PlusCircle,
@@ -9,17 +9,15 @@ import {
   Database,
   Download,
   Search,
-  Filter,
   Check,
-  Flame,
-  AlertTriangle,
-  Info,
-  ShieldCheck,
   ArrowLeft,
   X,
   FileCode,
+  Sliders,
+  Save,
+  RotateCcw,
 } from 'lucide-react';
-import { Category, Vulnerability, Suggestion, SeverityLevel } from '../types';
+import { Category, Vulnerability, Suggestion, SeverityLevel, SiteSettings } from '../types';
 
 interface AdminViewProps {
   categories: Category[];
@@ -40,7 +38,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
   onDataChanged,
   onBackToHome,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'vulns' | 'suggestions' | 'database'>('vulns');
+  const [activeSubTab, setActiveSubTab] = useState<'vulns' | 'suggestions' | 'database' | 'settings'>('vulns');
   const [searchTable, setSearchTable] = useState('');
   
   // Vulnerability CRUD Modal state
@@ -60,6 +58,15 @@ export const AdminView: React.FC<AdminViewProps> = ({
     impact_scope: '',
   });
 
+  // Site Settings state
+  const [settingsForm, setSettingsForm] = useState<SiteSettings>({
+    site_title: 'Security X',
+    site_description: 'Esse site tem como objetivo apresentar um glossário de fragilidades em sistemas da informação, além de mostrar exemplos e dar explicações acerca dessas mesmas vulnerabilidades de forma acessível e facilitada. Tendo como público alvo os estudantes da área.',
+    hero_badge: 'PORTAL ACADÊMICO DE SEGURANÇA DEFENSIVA & OFENSIVA',
+    footer_text: 'Plataforma educacional de conscientização e estudo de fragilidades em sistemas da informação, dedicada a estudantes e pesquisadores.',
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
   // Action status message
   const [actionNotice, setActionNotice] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
@@ -69,6 +76,23 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setActionNotice({ type, msg });
     setTimeout(() => setActionNotice(null), 4000);
   };
+
+  // Fetch site settings
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/site-settings');
+      if (res.ok) {
+        const data = await res.json();
+        setSettingsForm(data);
+      }
+    } catch (e) {
+      console.error('Erro ao buscar configurações:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   // Open Create Modal
   const handleOpenCreateModal = () => {
@@ -217,6 +241,46 @@ export const AdminView: React.FC<AdminViewProps> = ({
     }
   };
 
+  // Save Site Settings
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSavingSettings(true);
+      const res = await fetch('/api/site-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(settingsForm),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Falha ao salvar configurações do site');
+      }
+
+      const updated = await res.json();
+      setSettingsForm(updated);
+      showNotice('success', 'Configurações e textos do Security X atualizados com sucesso!');
+      onDataChanged();
+    } catch (err: any) {
+      showNotice('error', err.message || 'Erro ao atualizar configurações.');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  // Reset Settings to Default
+  const handleResetSettingsDefaults = () => {
+    setSettingsForm({
+      site_title: 'Security X',
+      site_description: 'Esse site tem como objetivo apresentar um glossário de fragilidades em sistemas da informação, além de mostrar exemplos e dar explicações acerca dessas mesmas vulnerabilidades de forma acessível e facilitada. Tendo como público alvo os estudantes da área.',
+      hero_badge: 'PORTAL ACADÊMICO DE SEGURANÇA DEFENSIVA & OFENSIVA',
+      footer_text: 'Plataforma educacional de conscientização e estudo de fragilidades em sistemas da informação, dedicada a estudantes e pesquisadores.',
+    });
+  };
+
   // Download SQL PostgreSQL Dump
   const handleDownloadSql = () => {
     window.location.href = '/api/database/export-sql';
@@ -260,7 +324,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
             Administração do Security X
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Insira, edite e gerencie as terminologias do catálogo streaming, modere sugestões de estudantes e exporte para o PostgreSQL.
+            Insira e edite terminologias do catálogo streaming, modere sugestões de estudantes, ajuste características do site e exporte dados para PostgreSQL.
           </p>
         </div>
 
@@ -322,8 +386,8 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
       </div>
 
-      {/* Sub Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 mb-6">
+      {/* Sub Tabs Navigation (Now 4 Tabs) */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 mb-6">
         <button
           onClick={() => setActiveSubTab('vulns')}
           className={`px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
@@ -349,6 +413,18 @@ export const AdminView: React.FC<AdminViewProps> = ({
               {pendingSuggestions.length}
             </span>
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('settings')}
+          className={`flex items-center gap-2 px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeSubTab === 'settings'
+              ? 'border-cyan-400 text-cyan-400'
+              : 'border-transparent text-slate-400 hover:text-white'
+          }`}
+        >
+          <Sliders className="w-3.5 h-3.5" />
+          <span>Configurações do Site</span>
         </button>
 
         <button
@@ -537,7 +613,111 @@ export const AdminView: React.FC<AdminViewProps> = ({
         </div>
       )}
 
-      {/* Sub-tab 3: Database & PostgreSQL Integration */}
+      {/* Sub-tab 3: Configurações do Site (Dynamic Site Settings) */}
+      {activeSubTab === 'settings' && (
+        <div className="space-y-6">
+          <div className="p-6 rounded-2xl bg-[#0F172A] border border-slate-800 max-w-4xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+              <div>
+                <h3 className="text-lg font-bold font-display text-white flex items-center gap-2">
+                  <Sliders className="w-5 h-5 text-cyan-400" />
+                  <span>Personalização de Textos e Características do Site</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Altere diretamente do painel o título principal, a descrição oficial do glossário, o subtítulo superior e o rodapé.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetSettingsDefaults}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 bg-[#090D16] transition-colors cursor-pointer self-start sm:self-auto"
+                title="Restaurar textos padrão originais"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Restaurar Padrões</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="space-y-5 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1 uppercase tracking-wider">
+                  Título do Site / Marca
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={settingsForm.site_title}
+                  onChange={e => setSettingsForm({ ...settingsForm, site_title: e.target.value })}
+                  placeholder="Security X"
+                  className="w-full px-3.5 py-2.5 bg-[#090D16] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-cyan-400"
+                />
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  Exibido na barra de navegação, no hero e nos títulos das páginas.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1 uppercase tracking-wider">
+                  Badge Superior (Kicker Tagline)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={settingsForm.hero_badge}
+                  onChange={e => setSettingsForm({ ...settingsForm, hero_badge: e.target.value })}
+                  placeholder="PORTAL ACADÊMICO DE SEGURANÇA DEFENSIVA & OFENSIVA"
+                  className="w-full px-3.5 py-2.5 bg-[#090D16] border border-slate-700 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1 uppercase tracking-wider">
+                  Descrição Oficial do Glossário (Hero Section)
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={settingsForm.site_description}
+                  onChange={e => setSettingsForm({ ...settingsForm, site_description: e.target.value })}
+                  placeholder="Texto oficial descritivo do objetivo do Security X..."
+                  className="w-full px-3.5 py-2.5 bg-[#090D16] border border-slate-700 rounded-xl text-white text-xs sm:text-sm leading-relaxed focus:outline-none focus:border-cyan-400"
+                />
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  Esta é a descrição oficial apresentada no topo da página inicial para estudantes e visitantes.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1 uppercase tracking-wider">
+                  Texto do Rodapé (Footer)
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={settingsForm.footer_text}
+                  onChange={e => setSettingsForm({ ...settingsForm, footer_text: e.target.value })}
+                  placeholder="Texto explicativo breve para o rodapé..."
+                  className="w-full px-3.5 py-2.5 bg-[#090D16] border border-slate-700 rounded-xl text-white text-xs leading-relaxed focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end">
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-slate-900 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingSettings ? 'Salvando...' : 'Salvar Alterações do Site'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sub-tab 4: Database & PostgreSQL Integration */}
       {activeSubTab === 'database' && (
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-[#0F172A] border border-slate-800">
@@ -548,7 +728,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   <span>Esquema Relacional PostgreSQL</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  O Security X possui um modelo de dados relacional desenhado para PostgreSQL com chaves primárias, restrições e relacionamentos formais.
+                  O Security X possui um modelo de dados relacional desenhado para PostgreSQL com suporte a usuários, configurações dinâmicas, vulnerabilidades e moderação.
                 </p>
               </div>
 
@@ -562,43 +742,49 @@ export const AdminView: React.FC<AdminViewProps> = ({
             </div>
 
             {/* Tables preview */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
               <div className="p-4 rounded-xl bg-[#090D16] border border-slate-800 text-xs">
-                <span className="font-bold text-cyan-400 font-mono block mb-2">TABELA categories</span>
+                <span className="font-bold text-cyan-400 font-mono block mb-2">TABELA users</span>
                 <ul className="text-slate-400 space-y-1 font-mono text-[11px]">
-                  <li>• id (VARCHAR PRIMARY KEY)</li>
-                  <li>• name (VARCHAR NOT NULL)</li>
-                  <li>• description (TEXT)</li>
-                  <li>• badge_label (VARCHAR)</li>
-                  <li>• sort_order (INT)</li>
+                  <li>• id (VARCHAR PK)</li>
+                  <li>• username (VARCHAR UNIQUE)</li>
+                  <li>• email (VARCHAR UNIQUE)</li>
+                  <li>• password_hash (VARCHAR)</li>
+                  <li>• avatar_id (VARCHAR)</li>
+                  <li>• created_at (TIMESTAMP)</li>
+                </ul>
+              </div>
+
+              <div className="p-4 rounded-xl bg-[#090D16] border border-slate-800 text-xs">
+                <span className="font-bold text-cyan-400 font-mono block mb-2">TABELA site_settings</span>
+                <ul className="text-slate-400 space-y-1 font-mono text-[11px]">
+                  <li>• key (VARCHAR PK)</li>
+                  <li>• value (TEXT)</li>
+                  <li>• updated_at (TIMESTAMP)</li>
                 </ul>
               </div>
 
               <div className="p-4 rounded-xl bg-[#090D16] border border-slate-800 text-xs">
                 <span className="font-bold text-cyan-400 font-mono block mb-2">TABELA vulnerabilities</span>
                 <ul className="text-slate-400 space-y-1 font-mono text-[11px]">
-                  <li>• id (VARCHAR PRIMARY KEY)</li>
-                  <li>• title (VARCHAR NOT NULL)</li>
-                  <li>• category_id (FK categories)</li>
-                  <li>• severity (CHECK IN enum)</li>
+                  <li>• id (VARCHAR PK)</li>
+                  <li>• title (VARCHAR)</li>
+                  <li>• category_id (FK)</li>
+                  <li>• severity (ENUM CHECK)</li>
                   <li>• short_summary (TEXT)</li>
                   <li>• detailed_description (TEXT)</li>
-                  <li>• practical_example (TEXT)</li>
-                  <li>• mitigation (TEXT)</li>
                 </ul>
               </div>
 
               <div className="p-4 rounded-xl bg-[#090D16] border border-slate-800 text-xs">
                 <span className="font-bold text-cyan-400 font-mono block mb-2">TABELA suggestions</span>
                 <ul className="text-slate-400 space-y-1 font-mono text-[11px]">
-                  <li>• id (VARCHAR PRIMARY KEY)</li>
-                  <li>• term_title (VARCHAR NOT NULL)</li>
-                  <li>• category_id (FK categories)</li>
-                  <li>• severity (CHECK IN enum)</li>
-                  <li>• description (TEXT)</li>
-                  <li>• example (TEXT)</li>
-                  <li>• student_name (VARCHAR)</li>
-                  <li>• status (CHECK IN enum)</li>
+                  <li>• id (VARCHAR PK)</li>
+                  <li>• user_id (FK users)</li>
+                  <li>• term_title (VARCHAR)</li>
+                  <li>• category_id (FK)</li>
+                  <li>• status (ENUM CHECK)</li>
+                  <li>• admin_notes (TEXT)</li>
                 </ul>
               </div>
             </div>
@@ -607,32 +793,39 @@ export const AdminView: React.FC<AdminViewProps> = ({
             <div className="mt-6 pt-6 border-t border-slate-800">
               <span className="text-xs font-semibold text-slate-300 block mb-2 flex items-center gap-2">
                 <FileCode className="w-4 h-4 text-cyan-400" />
-                <span>Pré-visualização do Script DDL (PostgreSQL)</span>
+                <span>Pré-visualização do Script DDL (PostgreSQL com users e site_settings)</span>
               </span>
               <pre className="p-4 rounded-xl bg-[#090D16] border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto leading-relaxed max-h-60">
-{`CREATE TABLE categories (
+{`CREATE TABLE users (
     id VARCHAR(50) PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    badge_label VARCHAR(50),
-    sort_order INT DEFAULT 0
-);
-
-CREATE TABLE vulnerabilities (
-    id VARCHAR(50) PRIMARY KEY,
-    title VARCHAR(150) NOT NULL,
-    category_id VARCHAR(50) REFERENCES categories(id) ON DELETE SET NULL,
-    severity VARCHAR(20) NOT NULL CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
-    short_summary TEXT NOT NULL,
-    detailed_description TEXT NOT NULL,
-    practical_example TEXT NOT NULL,
-    mitigation TEXT NOT NULL,
-    cwe_id VARCHAR(50),
-    owasp_reference VARCHAR(100),
-    attack_vector VARCHAR(100),
-    impact_scope VARCHAR(150),
+    username VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    salt VARCHAR(64) NOT NULL,
+    avatar_id VARCHAR(50) DEFAULT 'avatar-cyber-hacker',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE site_settings (
+    key VARCHAR(50) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE suggestions (
+    id VARCHAR(50) PRIMARY KEY,
+    user_id VARCHAR(50) REFERENCES users(id) ON DELETE SET NULL,
+    term_title VARCHAR(150) NOT NULL,
+    category_id VARCHAR(50) REFERENCES categories(id) ON DELETE SET NULL,
+    severity VARCHAR(20) NOT NULL CHECK (severity IN ('Low', 'Medium', 'High', 'Critical')),
+    description TEXT NOT NULL,
+    example TEXT,
+    student_name VARCHAR(100),
+    student_email VARCHAR(255),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    admin_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );`}
               </pre>
             </div>

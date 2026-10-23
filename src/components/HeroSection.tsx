@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, X, Shield, Terminal, BookOpen, Layers } from 'lucide-react';
-import { SeverityLevel } from '../types';
+import { SiteSettings } from '../types';
 
 interface HeroSectionProps {
   searchQuery: string;
@@ -10,6 +10,7 @@ interface HeroSectionProps {
   totalCount: number;
   filteredCount: number;
   onScrollToCatalog: () => void;
+  siteSettings?: SiteSettings;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
@@ -20,6 +21,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   totalCount,
   filteredCount,
   onScrollToCatalog,
+  siteSettings,
 }) => {
   const severities: { label: string; value: string }[] = [
     { label: 'Todas as Gravidades', value: 'all' },
@@ -28,6 +30,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     { label: 'Média', value: 'Medium' },
     { label: 'Baixa', value: 'Low' },
   ];
+
+  const siteTitle = siteSettings?.site_title || 'Security X';
+  const heroBadge = siteSettings?.hero_badge || 'PORTAL ACADÊMICO DE SEGURANÇA DEFENSIVA & OFENSIVA';
+  const siteDescription =
+    siteSettings?.site_description ||
+    'Esse site tem como objetivo apresentar um glossário de fragilidades em sistemas da informação, além de mostrar exemplos e dar explicações acerca dessas mesmas vulnerabilidades de forma acessível e facilitada. Tendo como público alvo os estudantes da área.';
+
+  // Format title if it ends with "X" to highlight the "X" in cyan gradient
+  const renderTitle = () => {
+    if (siteTitle.endsWith(' X')) {
+      const base = siteTitle.slice(0, -2);
+      return (
+        <>
+          {base}{' '}
+          <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
+            X
+          </span>
+        </>
+      );
+    }
+    return siteTitle;
+  };
 
   return (
     <section className="relative w-full pt-12 pb-16 overflow-hidden border-b border-slate-800/60">
@@ -46,17 +70,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         {/* Subtle Brand Kicker */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/60 border border-cyan-800/40 text-cyan-300 text-xs font-mono mb-6">
           <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-          <span>PORTAL ACADÊMICO DE SEGURANÇA DEFENSIVA & OFENSIVA</span>
+          <span>{heroBadge}</span>
         </div>
 
         {/* Official Title */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold font-display tracking-tight text-white mb-6">
-          Security <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">X</span>
+          {renderTitle()}
         </h1>
 
-        {/* Official Description Requested by the User */}
+        {/* Official Description */}
         <p className="max-w-3xl mx-auto text-base sm:text-lg text-slate-300 leading-relaxed font-normal mb-10">
-          Esse site tem como objetivo apresentar um glossário de fragilidades em sistemas da informação, além de mostrar exemplos e dar explicações acerca dessas mesmas vulnerabilidades de forma acessível e facilitada. Tendo como público alvo os estudantes da área.
+          {siteDescription}
         </p>
 
         {/* Central Search Bar */}

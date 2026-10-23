@@ -29,6 +29,7 @@ export type SuggestionStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Suggestion {
   id: string;
+  user_id?: string;
   term_title: string;
   category_id: string;
   severity: SeverityLevel;
@@ -41,4 +42,27 @@ export interface Suggestion {
   created_at: string;
 }
 
-export type ActiveTab = 'home' | 'suggestions' | 'admin';
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  avatar_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SiteSettings {
+  site_title: string;
+  site_description: string;
+  hero_badge: string;
+  footer_text: string;
+}
+
+export interface AvatarOption {
+  id: string;
+  name: string;
+  role: string;
+  svgContent: string;
+}
+
+export type ActiveTab = 'home' | 'suggestions' | 'admin' | 'profile';

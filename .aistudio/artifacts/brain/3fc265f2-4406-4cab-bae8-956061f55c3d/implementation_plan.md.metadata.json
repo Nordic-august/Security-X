@@ -1,6 +1,6 @@
 {
-  "summary":  "Plano detalhado de expansão do Security X com incorporação das novas vulnerabilidades do artigo científico da UFPR (Botelho-Francisco, 2025), prévia completa do catálogo atualizado, e segregação do Painel Administrativo em portal de autenticação restrito com credenciais dedicadas.",
-  "updatedAt":  "2026-10-20T22:43:22.391145844Z",
+  "summary":  "Plano detalhado de implementação da autenticação de estudantes para sugestões com perfil completo (troca de senha, troca de usuário, seleção de avatares predefinidos em pasta dedicada, acompanhamento de sugestões aprovadas e pendentes), atualização do esquema SQL para PostgreSQL com tabelas de usuários e configurações dinâmicas do site editáveis pelo admin.",
+  "updatedAt":  "2026-10-23T00:31:13.757528340Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

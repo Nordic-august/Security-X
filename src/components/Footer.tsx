@@ -1,28 +1,35 @@
 import React from 'react';
 import { Shield, Lock } from 'lucide-react';
-import { ActiveTab } from '../types';
+import { ActiveTab, SiteSettings } from '../types';
 
 interface FooterProps {
   onSelectTab: (tab: ActiveTab) => void;
   onSecretAdminTrigger?: () => void;
   isAdminAuthenticated?: boolean;
+  siteSettings?: SiteSettings;
 }
 
 export const Footer: React.FC<FooterProps> = ({
   onSelectTab,
   onSecretAdminTrigger,
   isAdminAuthenticated,
+  siteSettings,
 }) => {
+  const siteTitle = siteSettings?.site_title || 'Security X';
+  const footerText =
+    siteSettings?.footer_text ||
+    'Plataforma educacional de conscientização e estudo de fragilidades em sistemas da informação, dedicada a estudantes e pesquisadores.';
+
   return (
     <footer className="w-full bg-[#070A11] border-t border-slate-800/80 text-xs text-slate-500 py-12 px-6">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex flex-col items-center sm:items-start gap-1">
           <div className="flex items-center gap-2 text-slate-300 font-bold font-display text-sm">
             <Shield className="w-4 h-4 text-cyan-400" />
-            <span>Security X</span>
+            <span>{siteTitle}</span>
           </div>
           <p className="text-slate-400 text-center sm:text-left text-xs max-w-md">
-            Plataforma educacional de conscientização e estudo de fragilidades em sistemas da informação, dedicada a estudantes e pesquisadores.
+            {footerText}
           </p>
         </div>
 
@@ -57,7 +64,7 @@ export const Footer: React.FC<FooterProps> = ({
         <div className="text-center sm:text-right text-[11px] text-slate-500">
           <span>Referências: OWASP Top 10 · MITRE CVE/CWE · UFPR 2025</span>
           <div className="mt-0.5 flex items-center justify-center sm:justify-end gap-1">
-            <span>© {new Date().getFullYear()} Security X. Todos os direitos reservados.</span>
+            <span>© {new Date().getFullYear()} {siteTitle}. Todos os direitos reservados.</span>
             {/* Discreet secret trigger for admins */}
             <button
               onClick={onSecretAdminTrigger}
